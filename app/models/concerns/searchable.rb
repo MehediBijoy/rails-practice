@@ -41,7 +41,7 @@ module Searchable
 
     def build_field(klass, field)
       if klass.column_names.include?(field.to_s)
-        "#{klass.name.underscore.downcase.pluralize}.#{field}"
+        "#{klass.name.underscore.pluralize}.#{field}"
       else
         raise ArgumentError, "#{klass.name} model does not have '#{field}' field"
       end

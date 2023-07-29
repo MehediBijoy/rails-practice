@@ -25,7 +25,7 @@ module Searchable
       if excluded_fields.present?
         column_names - Array(excluded_fields).map(&:to_s)
       else
-        included_fields.flat_map { |field| extract_params(field) }
+        included_fields.flat_map { extract_params(_1) }
       end
     end
 
@@ -33,20 +33,17 @@ module Searchable
       if field.is_a?(Hash)
         associated_name, associated_fields = field.first
         associated_table = associated_reflections(associated_name.to_s)
-
-        associated_fields.map do |associated_field|
-          if associated_table.column_names.include?(associated_field.to_s)
-            "#{associated_table.name}.#{associated_field}"
-          else
-            raise ArgumentError, "'#{associated_table.klass}' model does not have '#{associated_field}' field"
-          end
-        end
+        associated_fields.map { build_field(associated_table, _1) }
       else
-        if column_names.include?(field.to_s)
-          "#{name.downcase.pluralize}.#{field.to_s}"
-        else
-          raise ArgumentError, "#{name} model does not have '#{field}' field"
-        end
+        build_field(self, field)
+      end
+    end
+
+    def build_field(klass, field)
+      if klass.column_names.include?(field.to_s)
+        "#{klass.name.underscore.downcase.pluralize}.#{field}"
+      else
+        raise ArgumentError, "#{klass.name} model does not have '#{field}' field"
       end
     end
 
@@ -54,8 +51,7 @@ module Searchable
       associated_klass = reflections[reference_name.singularize] || reflections[reference_name.pluralize]
       if associated_klass.present?
         OpenStruct.new({
-          name: associated_klass.plural_name,
-          klass: associated_klass.klass,
+          name: associated_klass.klass.name,
           column_names: associated_klass.klass.column_names,
         })
       else
@@ -64,7 +60,7 @@ module Searchable
     end
 
     def build_search_conditions(fields)
-      fields.map { |item| "#{item} LIKE :query" }.join(' OR ')
+      fields.map { "#{_1} LIKE :query" }.join(' OR ')
     end
   end
 end

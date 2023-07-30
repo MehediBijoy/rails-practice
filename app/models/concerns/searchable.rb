@@ -23,16 +23,19 @@ module Searchable
 
     def build_query_params(included_fields, excluded_fields)
       if excluded_fields.present?
-        column_names - Array(excluded_fields).map(&:to_s)
+        self_fields = column_names.map { extract_params(_1) }
+        excluded_fields = excluded_fields.flat_map { extract_params(_1, excluded: true) }
+        (self_fields - excluded_fields) + (excluded_fields - self_fields)
       else
         included_fields.flat_map { extract_params(_1) }
       end
     end
 
-    def extract_params(field)
+    def extract_params(field, excluded: false)
       if field.is_a?(Hash)
         associated_name, associated_fields = field.first
         associated_table = associated_reflections(associated_name.to_s)
+        associated_fields = associated_table.column_names.map(&:to_sym) - associated_fields if excluded
         associated_fields.map { build_field(associated_table, _1) }
       else
         build_field(self, field)

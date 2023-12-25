@@ -1,0 +1,5 @@
+class UsersController
+  def check: (name: String, age: Integer) -> String
+
+  def index: -> untyped
+end
